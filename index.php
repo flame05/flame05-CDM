@@ -1,7 +1,7 @@
 <?php
 session_start();
-$db = new mysqli("localhost", "cdm", "Ktts4%57", "flame-cdm");
-
+//$db = new mysqli("localhost", "cdm", "Ktts4%57", "flame-cdm");
+$db = new mysqli("localhost", "root", "", "flame-cdm");
 class user
 {
     function __construct()
@@ -61,6 +61,17 @@ class zprocesso
     {
         $this->id = $id;
         $this->nome = $nome;
+    }
+
+    function reload()
+    {
+        global $db;
+        $sql = "SELECT nome FROM processo WHERE id =".$this->id." LIMIT 1";
+        $result = $db->query($sql);
+        if($row = $result->fetch_assoc())
+        {
+            $this->nome = $row['nome'];
+        }
     }
 }
 
@@ -204,6 +215,13 @@ class processo
         if($db->query($sql))
             $this->created = true;
     }
+
+    function gPro($id)
+    {
+        $pro = new zprocesso($id,'');
+        $pro->reload();
+    return $pro;
+    }
 }
 
 class modello
@@ -277,6 +295,15 @@ class parte
         return $parti;
         }
     return $parti;
+    }
+
+    function getModello($id_modello)
+    {
+        global $db;
+        $sql = "SELECT nome FROM modello WHERE id = ".$id_modello." LIMIT 1";
+        $result = $db->query($sql);
+        $row = $result->fetch_assoc();
+        return $row['nome'];
     }
 
     function aggiorna($id,$nome,$ordine)
@@ -700,7 +727,287 @@ if($pagina == 'admin'){
                 switch($_GET['subpage'])
                 {
                     case 'cdm':
+                    if(isset($_GET['erase_project']))
+                    {
+                        $id = $_GET['erase_project'];
+                        $processo = new processo();
+                        $processo->elimina($id);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                                     <strong>Progetto eliminato con successo!</strong></div>';
+                    }
+                    if(isset($_GET['add_project']))
+                    {
+                        $processo = new processo();
+                        $processo->crea($_POST['nome']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                                     <strong>Progetto '.$_POST['nome'].' creato con successo!</strong></div>';
+                    }
 
+                    ?>
+                        <div class="container" style="margin-top: 100px;">
+                            <div class="row" style="margin-top: 15px;">
+                                <div class="col-md-3">&nbsp;</div>
+                                <div class="col-md-6">
+                                <?php
+                                if($cdm_mess) echo $cdm_mess;
+                                 ?>
+
+                                 <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingOne">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                          Aggiungi Progetto
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                                      <div class="panel-body">
+                                        <form action="index.php?page=admin&subpage=cdm&add_project" method="POST">
+                                          <div class="form-group">
+                                            <label>Nome</label>
+                                            <input type="text" name="nome" class="form-control">
+                                          </div>
+                                          <button type="submit" class="btn btn-default">Crea</button>
+                                        </form>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingTwo">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                          Lista progetti
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                                      <div class="panel-body">
+                                        <div class="table-responsive">
+                                          <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                 <th>ID</th>
+                                                 <th>Nome</th>
+                                                 <?php if($user->l > 5){ ?>
+                                                 <th>Elimina</th>
+                                                 <?php } ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php
+                                                $processo = new processo();
+                                                $processi = $processo->getProcessi();
+                                                foreach($processi as $key => $oprocesso)
+                                                {
+
+                                                    echo '<tr><td>'.$oprocesso->id.'</td><td><a href="index.php?page=admin&subpage=project&id='.$oprocesso->id.'">'.$oprocesso->nome.'</a></td>';
+                                                    if($user->l > 5) echo '<td><a href="index.php?page=admin&subpage=cdm&erase_project='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>';
+                                                    echo '</tr>';
+                                                }
+                                                
+                                            ?>
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                    <?php
+                    break;
+                    case 'model':
+                    $id_progetto = $_GET['id_project'];
+                    $id_modello = $_GET['id'];
+
+                    $parte = new parte();
+                    $parti = $parte->getParti($id_modello);
+                    $nome_modello = $parte->getModello($id_modello);
+
+                    ?>
+
+
+                         <div class="container" style="margin-top: 100px;">
+                            <div class="row" style="margin-top: 15px;">
+                                <div class="col-md-3">&nbsp;</div>
+                                <div class="col-md-6">
+                                <?php
+                                if($cdm_mess) echo $cdm_mess;
+                                 ?>
+
+
+                                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingOne">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                          Aggiungi Parte a <?php echo $nome_modello; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                                      <div class="panel-body">
+                                        <form action="index.php?page=admin&subpage=model&project_id=<?php echo $id_progetto; ?>&id=<?php echo $id_modello; ?>&add_parte" method="POST">
+                                            <input type="text" name="id" value="<?php echo $id_modello; ?>" class="form-control" style="visibility:hidden;">
+                                          <div class="form-group">
+                                            <label>Nome</label>
+                                            <input type="text" name="nome" class="form-control">
+                                          </div>
+                                          <button type="submit" class="btn btn-default">Aggiungi</button>
+                                        </form>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingTwo">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                          Lista Modelli nel progetto <?php echo $processo->nome; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                                      <div class="panel-body">
+                                        <div class="table-responsive">
+                                          <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                 <th>ID</th>
+                                                 <th>Nome</th>
+                                                 <th>Modifica</th>
+                                                 <th>Elimina</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php
+                                                foreach($parti as $key => $oprocesso)
+                                                {
+
+                                                    echo '<tr><td>'.$oprocesso->id.'</td><td><a href="index.php?page=admin&subpage=model&project_id='.$processo->id.'&id='.$oprocesso->id.'">'.$oprocesso->nome.'</a></td>';
+                                                    if($user->l > 5) echo '<td><a href="index.php?page=admin&subpage=project&id='.$processo->id.'&erase_model='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>';
+                                                    echo '</tr>';
+                                                }
+                                                
+                                            ?>
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                               </div>
+                            </div>               
+                        </div>
+
+
+                    <?php
+                    break;
+                    case 'project':
+                    $prox = new processo();
+                    $processo = $prox->gPro($_GET['id']);
+
+
+                    if(isset($_GET['add_modello']))
+                    {
+                        $modx = new modello();
+                        $modx->crea($_POST['id'],$_POST['nome']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>Modello '.$_POST['nome'].' aggiunto!</strong></div>';
+                    }
+
+                    if(isset($_GET['erase_model']))
+                    {
+                        $modx = new modello();
+                        $modx->elimina($_GET['erase_model']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>Il modello è stato eliminato!</strong></div>';
+                    }
+                    ?>
+
+
+                        <div class="container" style="margin-top: 100px;">
+                            <div class="row" style="margin-top: 15px;">
+                                <div class="col-md-3">&nbsp;</div>
+                                <div class="col-md-6">
+                                <?php
+                                if($cdm_mess) echo $cdm_mess;
+                                 ?>
+
+
+                                <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingOne">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                          Aggiungi Modello a <?php echo $processo->nome; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
+                                      <div class="panel-body">
+                                        <form action="index.php?page=admin&subpage=project&id=<?php echo $processo->id; ?>&add_modello" method="POST">
+                                            <input type="text" name="id" value="<?php echo $processo->id; ?>" class="form-control" style="visibility:hidden;">
+                                          <div class="form-group">
+                                            <label>Nome</label>
+                                            <input type="text" name="nome" class="form-control">
+                                          </div>
+                                          <button type="submit" class="btn btn-default">Aggiungi</button>
+                                        </form>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingTwo">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                          Lista Modelli nel progetto <?php echo $processo->nome; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                                      <div class="panel-body">
+                                        <div class="table-responsive">
+                                          <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                 <th>ID</th>
+                                                 <th>Nome</th>
+                                                 <th>Elimina</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php
+                                                $modello = new modello();
+                                                $modelli = $modello->getModelli($processo->id);
+                                                foreach($modelli as $key => $oprocesso)
+                                                {
+
+                                                    echo '<tr><td>'.$oprocesso->id.'</td><td><a href="index.php?page=admin&subpage=model&project_id='.$processo->id.'&id='.$oprocesso->id.'">'.$oprocesso->nome.'</a></td>';
+                                                    if($user->l > 5) echo '<td><a href="index.php?page=admin&subpage=project&id='.$processo->id.'&erase_model='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>';
+                                                    echo '</tr>';
+                                                }
+                                                
+                                            ?>
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                               </div>
+                            </div>               
+                        </div>
+
+
+                        <?php
                     break;
                     case 'users':
                         if(!empty($_GET['method']))
@@ -774,7 +1081,7 @@ if($pagina == 'admin'){
                                                 ?>
                                             </select>
                                           </div>
-                                          <button type="submit" class="btn btn-default">Submit</button>
+                                          <button type="submit" class="btn btn-default">Crea</button>
                                         </form>
                                       </div>
                                     </div>
