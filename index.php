@@ -2,526 +2,13 @@
 session_start();
 //$db = new mysqli("localhost", "cdm", "Ktts4%57", "flame-cdm");
 $db = new mysqli("localhost", "root", "", "flame-cdm");
-class user
-{
-    function __construct()
-    {
-        $this->online = false;
-        $this->offline = true;
-        $this->l = 0;
-        if(isset($_SESSION['id']))
-        {
-            $this->id = $_SESSION['id'];
-            $this->l = $_SESSION['livello'];
-            $this->user = $_SESSION['user'];
-            $this->online = true;
-            $this->offline = false;
-        }
-    }
 
-    function login($usern,$pass)
-    {
-        global $db;
-        $sql = "SELECT id,livello,username FROM utenti WHERE username = '".$db->escape_string($usern)."' AND password = '".$db->escape_string($pass)."' LIMIT 1";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            $row = $result->fetch_assoc();
-            $_SESSION['id'] = $row['id'];
-            $_SESSION['livello'] = $row['livello'];
-            $_SESSION['user'] = $row['username'];
-        return true;
-        }
-    return false;
-    }
-
-    function logout()
-    {
-        $_SESSION = array();
-        session_destroy();
-        return true;
-    }
-
+function autoLoadYo($class) {
+    include 'php/class/' . $class . '.class.php';
 }
 
-class zutente
-{
-    function __construct($id,$user,$livello,$nome)
-    {
-        $this->id = $id;
-        $this->user = $user;
-        $this->livello = $livello;
-        $this->nome = $nome;
-    }
-}
+spl_autoload_register('autoLoadYo');
 
-class zprocesso
-{
-    function __construct($id,$nome)
-    {
-        $this->id = $id;
-        $this->nome = $nome;
-    }
-
-    function reload()
-    {
-        global $db;
-        $sql = "SELECT nome FROM processo WHERE id =".$this->id." LIMIT 1";
-        $result = $db->query($sql);
-        if($row = $result->fetch_assoc())
-        {
-            $this->nome = $row['nome'];
-        }
-    }
-}
-
-class zmodello
-{
-    function __construct($id,$id_pro,$nome)
-    {
-        $this->id = $id;
-        $this->id_pro = $id_pro;
-        $this->nome = $nome;
-    }
-}
-
-class zparte
-{
-    function __construct($id,$id_modello,$nome,$ordine)
-    {
-        $this->id = $id;
-        $this->id_modello = $id_modello;
-        $this->nome = $nome;
-        $this->ordine = $ordine;
-    }
-}
-
-class zlavori
-{
-    function __construct($id,$id_mamma,$nome,$colore,$ordine)
-    {
-        $this->id = $id;
-        $this->id_modello = $id_modello;
-        $this->nome = $nome;
-        $this->colore = $colore;
-        $this->ordine = $ordine;
-    }
-}
-
-class zlavoro
-{
-    function __construct($id,$id_mamma,$nome,$ordine)
-    {
-        $this->id = $id;
-        $this->id_modello = $id_modello;
-        $this->nome = $nome;
-        $this->ordine = $ordine;
-    }
-}
-
-class utente
-{
-    function crea($user,$pass,$livello,$nome)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "INSERT INTO utenti (username,password,livello,nome) VALUES ('".$db->escape_string($user)."','".$db->escape_string($pass)."','".$livello."','".$db->escape_string($nome)."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function elimina($id)
-    {
-        global $db;
-        $sql = "UPDATE utenti SET zen = 0 WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            return true;
-    return false;
-    }
-
-    function aggiorna($id,$pass,$livello,$nome,$user,$zen)
-    {
-        global $db;
-        $sql = "UPDATE utenti SET password = '".$db->escape_string($pass)."',livello = '".$livello."',username = '".$db->escape_string($user)."',nome = '".$db->escape_string($nome)."',zen = '".$zen."' WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            return true;
-    return false;
-    }
-
-    function getUsers()
-    {
-        global $db;
-        $utenti = array();
-        $sql = "SELECT * FROM utenti WHERE zen = 1 AND livello <= ".$_SESSION['livello']."";
-        $result = $db->query($sql);
-        while($row = $result->fetch_assoc())
-        {
-            $utenti[] = new zutente($row['id'],$row['username'],$row['livello'],$row['nome']);
-        }
-    return $utenti;
-    }
-
-    function loadUser($id)
-    {
-    global $db;
-        $sql = "SELECT * FROM utenti WHERE id = ".$id." AND zen = 1 AND livello <= ".$_SESSION['livello']." LIMIT 1";
-        $result = $db->query($sql);
-        while($row = $result->fetch_assoc())
-        {
-            $zu = array();
-            $zu['id'] = $row['id'];
-            $zu['username'] = $row['username'];
-            $zu['password'] = $row['password'];
-            $zu['livello'] = $row['livello'];
-            $zu['nome'] = $row['nome'];
-            $zu['zen'] = $row['zen'];
-        }
-    return $zu;
-    }
-}
-
-class processo
-{
-    function crea($nome)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "INSERT INTO processo (nome) VALUES ('".$db->escape_string($nome)."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function getProcessi()
-    {
-        global $db;
-        $processi = array();
-        $sql = "SELECT * FROM processo WHERE zen = 1";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            while($row = $result->fetch_assoc())
-            {
-                $processi[] = new zprocesso($row['id'],$row['nome']);
-            }
-        return $processi;
-        }
-    return $processi;
-    }
-
-    function elimina($id)
-    {
-        global $db;
-        $sql = "UPDATE processo SET zen = 0 WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function gPro($id)
-    {
-        $pro = new zprocesso($id,'');
-        $pro->reload();
-    return $pro;
-    }
-}
-
-class modello
-{
-    function crea($id_pro,$nome)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "INSERT INTO modello (id_pro,nome) VALUES ('".$id_pro."','".$db->escape_string($nome)."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function getModelli($id_pro)
-    {
-        global $db;
-        $modelli = array();
-        $sql = "SELECT * FROM modello WHERE id_pro = ".$id_pro." AND zen = 1";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            while($row = $result->fetch_assoc())
-            {
-                $modelli[] = new zmodello($row['id'],$row['id_pro'],$row['nome']);
-            }
-        return $modelli;
-        }
-    return $modelli;
-    }
-
-    function elimina($id)
-    {
-        global $db;
-        $sql = "UPDATE modello SET zen = 0 WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            $this->created = true;
-    }
-}
-
-
-class parte
-{
-    function crea($id_modello,$nome)
-    {
-        global $db;
-        $this->created = false;
-
-        $sql = "SELECT count(*) AS totale FROM parte WHERE id_modello = ".$id_modello." AND zen = 1";
-        $result = $db->query($sql);
-        $row = $result->fetch_assoc();
-        $ordine = $row['totale'] + 1;
-
-
-        $sql = "INSERT INTO parte (id_modello,nome,ordine) VALUES ('".$id_modello."','".$db->escape_string($nome)."','".$ordine."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function getParti($id_modello)
-    {
-        global $db;
-        $parti = array();
-        $sql = "SELECT * FROM parte WHERE id_modello = ".$id_modello." AND zen = 1 ORDER BY ordine ASC";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            while($row = $result->fetch_assoc())
-            {
-                $parti[] = new zparte($row['id'],$row['id_modello'],$row['nome'],$row['ordine']);
-            }
-        return $parti;
-        }
-    return $parti;
-    }
-
-    function getModello($id_modello)
-    {
-        global $db;
-        $sql = "SELECT nome FROM modello WHERE id = ".$id_modello." LIMIT 1";
-        $result = $db->query($sql);
-        $row = $result->fetch_assoc();
-        return $row['nome'];
-    }
-
-    function aggiorna($id,$nome,$ordine)
-    {
-    global $db;
-        $sql = "UPDATE parte SET nome = '".$db->escape_string($nome)."',ordine = '".$ordine."' WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            return true;
-    return false;
-    }
-}
-
-
-
-class logp
-{
-    function crea($id_articolo,$id_lavoro)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "INSERT INTO logp (id_articolo,id_lavoro,tempo,id_user) VALUES ('".$id_articolo."','".$id_lavoro."','".time()."','".$_SESSION['id']."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-}
-
-class lavori
-{
-    function crea($id_mamma,$nome,$colore)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "SELECT count(*) AS totale FROM lavori WHERE id_mamma = ".$id_mamma." AND zen = 1";
-        $result = $db->query($sql);
-        $row = $result->fetch_assoc();
-        $ordine = $row['totale'] + 1;
-
-        $sql = "INSERT INTO lavoro (id_mamma,nome,colore,ordine) VALUES ('".$id_mamma."','".$db->escape_string($nome)."','".$db->escape_string($colore)."','".$ordine."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function getLavori($id_mamma)
-    {
-        global $db;
-        $lavori = array();
-        $sql = "SELECT * FROM lavori WHERE id_mamma = ".$id_mamma." AND zen = 1 ORDER BY ordine ASC";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            while($row = $result->fetch_assoc())
-            {
-                $lavori[] = new zlavori($row['id'],$row['id_mamma'],$row['nome'],$row['colore'],$row['ordine']);
-            }
-        return $lavori;
-        }
-    return $lavori;
-    }
-
-    function aggiorna($id,$nome,$colore,$ordine)
-    {
-    global $db;
-        $sql = "UPDATE parte SET nome = '".$db->escape_string($nome)."',ordine = '".$ordine."',colore = '".$db->escape_string($colore)."' WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            return true;
-    return false;
-    }
-}
-
-
-class lavoro
-{
-    function crea($id_mamma,$nome)
-    {
-        global $db;
-        $this->created = false;
-        $sql = "SELECT count(*) AS totale FROM lavoro WHERE id_mamma = ".$id_mamma." AND zen = 1";
-        $result = $db->query($sql);
-        $row = $result->fetch_assoc();
-        $ordine = $row['totale'] + 1;
-
-        $sql = "INSERT INTO lavoro (id_mamma,nome,ordine) VALUES ('".$id_mamma."','".$db->escape_string($nome)."','".$ordine."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function getLavoro($id_mamma)
-    {
-        global $db;
-        $lavoro = array();
-        $sql = "SELECT * FROM lavoro WHERE id_mamma = ".$id_mamma." AND zen = 1 ORDER BY ordine ASC";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            while($row = $result->fetch_assoc())
-            {
-                $lavoro[] = new zlavoro($row['id'],$row['id_mamma'],$row['nome'],$row['ordine']);
-            }
-        return $lavoro;
-        }
-    return $lavoro;
-    }
-
-    function aggiorna($id,$nome,$ordine)
-    {
-    global $db;
-        $sql = "UPDATE parte SET nome = '".$db->escape_string($nome)."',ordine = '".$ordine."' WHERE id = ".$id." LIMIT 1";
-        if($db->query($sql))
-            return true;
-    return false;
-    }
-
-}
-
-
-class articolo
-{
-    function crea($id_modello,$id_parte,$pos_madre,$posizione,$nome,$colore)
-    {
-        global $db;
-        $this->created = false;
-
-        $sql = "INSERT INTO articolo (id_modello,id_parte,posizione,pos_madre,nome,colore,id_user,tempo) VALUES ('".$id_modello."','".$id_parte."','".$posizione."','".$pos_madre."','".$db->escape_string($nome)."','".$colore."','".$_SESSION['id']."','".time()."')";
-        if($db->query($sql))
-            $this->created = true;
-    }
-
-    function sposta($id,$indietro = false)
-    {
-        global $db;
-
-        $sql = "SELECT id_modello,posizione,pos_madre FROM articolo WHERE id = ".$id." AND zen = 1 LIMIT 1";
-        $result = $db->query($sql);
-        if($result->num_rows > 0)
-        {
-            $row = $result->fetch_assoc();
-            $posizione = $row['posizione'];
-            $pos_madre = $row['pos_madre'];
-            $id_modello = $row['id_modello'];
-
-            /* AL CONTRARIO */
-            if($indietro)
-            {
-                if($pos_madre == 1 && $posizione == 1)
-                    return false;
-                if($posizione > 1)
-                {
-                    $np = $posizione-1;
-                    $sql = "UPDATE articolo SET posizione = ".$np." WHERE id = ".$id." LIMIT 1";
-                    if($db->query($sql))
-                        return true;
-                }
-                else
-                {
-                    $np = $pos_madre-1;
-                    $sql = "SELECT id FROM lavori WHERE ordine = ".$np." AND id_mamma = ".$id_modello." LIMIT 1";
-                    $result = $db->query($sql);
-                    $row = $result->fetch_assoc();
-                    $id_new = $row['id'];
-                    $sql = "SELECT count(*) AS totale FROM lavoro WHERE id_mamma = ".$id_new." AND zen = 1";
-                    $result = $db->query($sql);
-                    $row = $result->fetch_assoc();
-                    $totale = $row['totale'];
-                    $sql = "UPDATE articolo SET posizione = ".$totale.",pos_madre = ".$np." WHERE id = ".$id." LIMIT 1";
-                    if($db->query($sql))
-                        return true;
-                return 'error';
-                }
-            }
-
-
-            /* IN AVANTI */
-
-            $sql = "SELECT id FROM lavori WHERE ordine = ".$pos_madre." AND zen = 1 AND id_mamma = ".$id_modello." LIMIT 1";
-            $result = $db->query($sql);
-            if($result->num_rows > 0)
-            {
-                $row = $result ->fetch_assoc();
-                $id_mamma = $row['id'];
-                $sql = "SELECT count(*) AS totale FROM lavoro WHERE id_mamma = ".$id_mamma." AND zen = 1";
-                $result = $db->query($sql);
-                $row = $result->fetch_assoc();
-                $totale = $row['totale'];
-
-                if($totale == $posizione)
-                {
-
-                    $sql = "SELECT count(*) AS totale FROM lavoro WHERE id_mamma = ".$id_mamma." AND zen = 1";
-                    $result = $db->query($sql);
-                    $row = $result->fetch_assoc();
-                    $totale = $row['totale'];
-                    if($totale == $pos_madre)
-                    {
-                        $sql = "UPDATE articolo SET finito = 1 WHERE id = ".$id." LIMIT 1";
-                        $db->query($sql);
-                    return 'finito';
-                    }
-                    else
-                    {
-                        $nuovo_ordine_m = $pos_madre + 1;
-                        $sql = "UPDATE articolo SET posizione = 1,pos_madre = ".$nuovo_ordine_m." WHERE id = ".$id." LIMIT 1";
-                        if($db->query($sql))
-                            return true;
-                    }
-                }
-                else
-                {
-                    $nuovo_ordine = $posizione + 1;
-                    $sql = "UPDATE articolo SET posizione = ".$nuovo_ordine." WHERE id = ".$id." LIMIT 1";
-                    if($db->query($sql))
-                        return true;
-                }
-            }
-            return 'error';
-        }
-    return false;
-    }
-}
 
 $admin = array();
 $admin[1] = 'Operatore';
@@ -561,9 +48,19 @@ if(isset($_GET['update'])){
     exit;
 }
 
+if(isset($_GET['parteupdate'])){
+    $parte = new parte();
+    $arr = $parte->loadParte($_GET['id']);
+    echo json_encode($arr);
+    exit;
+}
+
 if(isset($_GET['sposta'])){
     $articolo = new articolo();
-    $articolo->sposta($_GET['sposta']);
+    if(isset($_SESSION['indietro']))
+      $articolo->sposta($_GET['sposta'],1);
+    else
+      $articolo->sposta($_GET['sposta']);
 header("Location: index.php");
     exit;
 }
@@ -574,6 +71,27 @@ if(isset($_GET['addArticolo'])){
 header("Location: index.php");
     exit;
 }
+
+if(isset($_GET['indietro']))
+{
+  if(isset($_SESSION['indietro']))
+    unset($_SESSION['indietro']);
+  else
+    $_SESSION['indietro'] = true;
+header("Location: index.php");
+    exit;
+}
+
+if(isset($_GET['aggiungere']))
+{
+  if(isset($_SESSION['aggiungere']))
+    unset($_SESSION['aggiungere']);
+  else
+    $_SESSION['aggiungere'] = true;
+header("Location: index.php");
+    exit;
+}
+
 
 ?>
 
@@ -648,6 +166,47 @@ if($pagina == 'admin'){
   </div>
 </div>
 
+        <?php
+        if(isset($_GET['subpage']))
+        {
+                switch($_GET['subpage'])
+                {
+
+
+                    case 'model':
+                ?>
+                <div class="modal fade" id="modParte" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="myModalLabel">Modifica parte</h4>
+                      </div>
+                      <div class="modal-body">
+                         <form action="index.php?page=admin&subpage=model&id=<?php echo $_GET['id']; ?>" id="modPForm" method="POST">
+                         <input type="text" id="modPid" name="modPid" style="visibility:hidden;">
+                      <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="modPnome" name="modPnome" class="form-control">
+                      </div>
+                      <div class="form-group">
+                        <label>Ordine</label>
+                        <input type="text" id="modPordine" name="modPordine" class="form-control">
+                      </div>
+                    </form>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="modPSubmit">Salva modifiche</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <?php 
+                break;
+
+             }
+
+        } ?>
  <?php } ?>
 
  <div class="modal fade" id="addArticolo" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -693,8 +252,14 @@ if($pagina == 'admin'){
 
             <?php if($user->online) { ?><li<?php if($pagina == 'home'){ ?> class="active"<?php } ?>><a href="index.php">Catena di Montaggio</a></li><?php } ?>
             <?php if($user->l > 4) { ?><li<?php if($pagina == 'admin'){ ?> class="active"<?php } ?>><a href="index.php?page=admin">Amministrazione</a></li><?php } ?>
+
+
+
+
             <?php if($user->online) { ?><li><a href="index.php?page=logout">Logout</a></li><?php } ?>
             <?php if($user->offline){ ?><li><a href="javascript:void(0);">Login</a></li> <?php } ?>
+            <?php if($user->l > 1) { ?><li<?php if(isset($_SESSION['indietro'])){ ?> class="active"<?php } ?>><a href="index.php?indietro"><-</a></li><?php } ?>
+            <?php if($user->l > 4) { ?><li<?php if(isset($_SESSION['aggiungere'])){ ?> class="active"<?php } ?>><a href="index.php?aggiungere">+</a></li><?php } ?>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -819,12 +384,54 @@ if($pagina == 'admin'){
                     <?php
                     break;
                     case 'model':
-                    $id_progetto = $_GET['id_project'];
                     $id_modello = $_GET['id'];
 
                     $parte = new parte();
                     $parti = $parte->getParti($id_modello);
                     $nome_modello = $parte->getModello($id_modello);
+
+
+                    if(isset($_GET['add_parte']))
+                    {
+                        $parx = new parte();
+                        $parx->crea($_POST['id'],$_POST['nome']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>Parte '.$_POST['nome'].' aggiunto al modello '.$nome_modello.'!</strong></div>';
+                        $parte = new parte();
+                        $parti = $parte->getParti($id_modello);
+                    }
+
+                    if(isset($_GET['erase_part']))
+                    {
+                        $parx = new parte();
+                        $parx->elimina($_GET['erase_part']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>Parte eliminata dal modello '.$nome_modello.'!</strong></div>';
+                        $parte = new parte();
+                        $parti = $parte->getParti($id_modello);
+                    }
+
+                    if(isset($_POST['modPid']))
+                    {
+                        $parx = new parte();
+                        $parx->aggiorna($_POST['modPid'],$_POST['modPnome'],$_POST['modPordine']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>La parte '.$_POST['modPnome'].' è stata aggiornata con successo!</strong></div>';
+                        $parte = new parte();
+                        $parti = $parte->getParti($id_modello);
+                    }
+
+                    if(isset($_POST['add_lavori']))
+                    {
+                        $lavori = new lavori();
+                        $lavori->crea($_POST['id'],$_POST['nome'],$_POST['colore']);
+                        $cdm_mess = '<div class="alert alert-success alert-dismissible fade in" role="alert">
+                                     <button type="button" class="close" data-dismiss="alert" aria-label="Chiudi"><span aria-hidden="true">×</span></button>
+                                     <strong>La parte '.$_POST['modPnome'].' è stata aggiornata con successo!</strong></div>';
+                    }
 
                     ?>
 
@@ -849,8 +456,8 @@ if($pagina == 'admin'){
                                     </div>
                                     <div id="collapseOne" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingOne">
                                       <div class="panel-body">
-                                        <form action="index.php?page=admin&subpage=model&project_id=<?php echo $id_progetto; ?>&id=<?php echo $id_modello; ?>&add_parte" method="POST">
-                                            <input type="text" name="id" value="<?php echo $id_modello; ?>" class="form-control" style="visibility:hidden;">
+                                        <form action="index.php?page=admin&subpage=model&id=<?php echo $id_modello; ?>&add_parte" method="POST">
+                                            <input type="text" name="id" value="<?php echo $id_modello; ?>" class="form-control" style="visibility:hidden;display:none;">
                                           <div class="form-group">
                                             <label>Nome</label>
                                             <input type="text" name="nome" class="form-control">
@@ -864,7 +471,7 @@ if($pagina == 'admin'){
                                     <div class="panel-heading" role="tab" id="headingTwo">
                                       <h4 class="panel-title list-group-item active">
                                         <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                          Lista Modelli nel progetto <?php echo $processo->nome; ?>
+                                          Elenco parti nel modello <?php echo $nome_modello; ?>
                                         </a>
                                       </h4>
                                     </div>
@@ -885,8 +492,7 @@ if($pagina == 'admin'){
                                                 foreach($parti as $key => $oprocesso)
                                                 {
 
-                                                    echo '<tr><td>'.$oprocesso->id.'</td><td><a href="index.php?page=admin&subpage=model&project_id='.$processo->id.'&id='.$oprocesso->id.'">'.$oprocesso->nome.'</a></td>';
-                                                    if($user->l > 5) echo '<td><a href="index.php?page=admin&subpage=project&id='.$processo->id.'&erase_model='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>';
+                                                    echo '<tr><td>'.$oprocesso->id.'</td><td>'.$oprocesso->nome.'</td><td><a href="javascript:void(0);" data-parte-id="'.$oprocesso->id.'" class="cdm-mod-parte"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a></td><td><a href="index.php?page=admin&subpage=model&id='.$id_modello.'&erase_part='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td>';
                                                     echo '</tr>';
                                                 }
                                                 
@@ -897,6 +503,75 @@ if($pagina == 'admin'){
                                       </div>
                                     </div>
                                   </div>
+
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingThree">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                                          Aggiungi Lavoro Principale a <?php echo $nome_modello; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                                      <div class="panel-body">
+                                        <form action="index.php?page=admin&subpage=model&id=<?php echo $id_modello; ?>&add_lavori" method="POST">
+                                            <input type="text" name="id" value="<?php echo $id_modello; ?>" class="form-control" style="visibility:hidden;display:none;">
+                                          <div class="form-group">
+                                            <label>Nome</label>
+                                            <input type="text" name="nome" class="form-control">
+                                          </div>
+                                          <div class="form-group">
+                                            <label>Colore (HEX: #******)</label>
+                                            <input type="text" name="colore" class="form-control">
+                                          </div>
+
+                                          <button type="submit" class="btn btn-default">Aggiungi</button>
+                                        </form>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="panel panel-default">
+                                    <div class="panel-heading" role="tab" id="headingFour">
+                                      <h4 class="panel-title list-group-item active">
+                                        <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                          Elenco lavori principali nel modello <?php echo $nome_modello; ?>
+                                        </a>
+                                      </h4>
+                                    </div>
+                                    <div id="collapseFour" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+                                      <div class="panel-body">
+                                        <div class="table-responsive">
+                                          <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                 <th>ID</th>
+                                                 <th>Nome</th>
+                                                 <th>Colore</th>
+                                                 <th>Modifica</th>
+                                                 <th>Elimina</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php
+                                                $lavori = new lavori();
+                                                $lavx = $lavori->getLavori($id_modello);
+                                                foreach($lavx as $key => $oprocesso)
+                                                {
+
+                                                    echo '<tr><td>'.$oprocesso->id.'</td><td><a href="index.php?page=admin&subpage=parti&id='.$oprocesso->id.'">'.$oprocesso->nome.'</a></td><td><span style="color:'.$oprocesso->colore.'">'.$oprocesso->colore.'</span></td><td><a href="javascript:void(0);" data-parte-id="'.$oprocesso->id.'" class="cdm-mod-parte"><span class="glyphicon glyphicon-pencil" aria-hidden="true"></span></a></td><td><a href="index.php?page=admin&subpage=model&id='.$id_modello.'&erase_part='.$oprocesso->id.'"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a></td></tr>';
+                                                    
+                                                }
+                                                
+                                            ?>
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+
+
                                 </div>
 
                                </div>
@@ -1248,7 +923,7 @@ if($pagina == 'admin'){
                                 <a href="index.php?sposta=<?php echo $row3['id']; ?>"><button type="button" class="btn btn-sm spostami <?php echo $row3['colore']; ?>" data-id="<?php echo $row3['id']; ?>" style="margin-top:5px;"><?php echo $row3['nome']; ?></button></a>
                                 <?php
                             }
-                            if($user->l > 4) { ?> <a class="addArti" href="javascript:void(0);" data-posizione="<?php echo $row2['ordine']; ?>" data-id-modello="<?php echo $id_modello; ?>" data-id-parte="<?php echo $part->id; ?>" data-pos-madre="<?php echo $row['ordine']; ?>"><button type="button" class="btn btn-sm spostami" style="margin-top:5px;"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button> <?php } ?></a>
+                            if($user->l > 4 && isset($_SESSION['aggiungere'])) { ?> <a class="addArti" href="javascript:void(0);" data-posizione="<?php echo $row2['ordine']; ?>" data-id-modello="<?php echo $id_modello; ?>" data-id-parte="<?php echo $part->id; ?>" data-pos-madre="<?php echo $row['ordine']; ?>"><button type="button" class="btn btn-sm spostami" style="margin-top:5px;"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button> <?php } ?></a>
                             </div>
                             <?php
                         }
